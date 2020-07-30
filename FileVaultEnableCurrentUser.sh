@@ -175,19 +175,6 @@ if [[ "$OS_MAJOR" -ne 10 || "$OS_MINOR" -lt 9 ]]; then
 	BAILOUT=true
 fi
 
-# Check to see if the encryption process is complete
-FV_STATUS="$(/usr/bin/fdesetup status)"
-if grep -q "Encryption in progress" <<< "$FV_STATUS"; then
-	REASON="FileVault encryption is in progress. Please run the script again when it finishes."
-	BAILOUT=true
-elif grep -q "FileVault is Off" <<< "$FV_STATUS"; then
-	REASON="Encryption is not active."
-	BAILOUT=true
-elif ! grep -q "FileVault is On" <<< "$FV_STATUS"; then
-	REASON="Unable to determine encryption status."
-	BAILOUT=true
-fi
-
 # Get the logged in user's name
 CURRENT_USER=$(/usr/bin/python -c 'from SystemConfiguration import SCDynamicStoreCopyConsoleUser; import sys; username = (SCDynamicStoreCopyConsoleUser(None, None, None) or [None])[0]; username = [username,""][username in [u"loginwindow", None, u""]]; sys.stdout.write(username + "\n");')
 
