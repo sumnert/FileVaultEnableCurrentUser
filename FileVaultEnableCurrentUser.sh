@@ -9,13 +9,13 @@
 ###############################################################################
 #
 #	BY USING THIS SCRIPT, YOU AGREE THAT JAMF SOFTWARE IS UNDER NO OBLIGATION
-#   TO SUPPORT, DEBUG, OR OTHERWISE	MAINTAIN THIS SCRIPT
+#   	TO SUPPORT, DEBUG, OR OTHERWISE	MAINTAIN THIS SCRIPT
 #
 ###############################################################################
 #
 #	THIS SCRIPT IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
 #	INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-#   AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+#   	AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
 #	JAMF SOFTWARE, LLC BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
 #	EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
 #	OF SUBSTITUTE GOODS OR SERVICES;LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
@@ -31,14 +31,14 @@
 #     Description:  This script is intended to run on Macs which need a
 #                   add the Current User as a FileVault enabled user.
 #         Credits:  https://github.com/homebysix
-#					https://github.com/kc9wwh
+#		    https://github.com/kc9wwh
 #                   https://github.com/ToplessBanana
 #                   https://github.com/brysontyrrell
 #                   https://www.jamf.com/jamf-nation/articles/146
-#       Tested On:  macOS 10.15, 10.14, 10.13, 10.12, 10.11
+#       Tested On:  macOS 10.15, 10.14, 10.13
 #         Created:  2018-03-21
 #   Last Modified:  2020-07-30 - Modified https://github.com/kc9wwh script to
-#					pass Filevault to Current User from Admin User
+#				pass Filevault to Current User from Admin User
 #
 ###############################################################################
 #
@@ -50,7 +50,7 @@
 ################################## VARIABLES ##################################
 
 # Company logo. (Tested with PNG, JPG, GIF, PDF, and AI formats.)
-LOGO="/usr/local/jamfps/acme2.png"
+LOGO="/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FileVaultIcon.icns"
 
 # The title of the message that will be displayed to the user.
 # Not too long, or it'll get clipped.
@@ -92,6 +92,13 @@ enableSecureToken() {
 
 # Creates a PLIST containing the necessary administrator and user credentials.
 createPlist() {
+	# Translate XML reserved characters to XML friendly representations.
+	USER_PASS=${USER_PASS//&/&amp;}
+	USER_PASS=${USER_PASS//</&lt;}
+	USER_PASS=${USER_PASS//>/&gt;}
+	USER_PASS=${USER_PASS//\"/&quot;}
+	USER_PASS=${USER_PASS//\'/&apos;}
+	
 	echo '<?xml version="1.0" encoding="UTF-8"?>
 	<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 	<plist version="1.0">
@@ -210,6 +217,14 @@ if [[ "$BAILOUT" == "true" ]]; then
 	exit 1
 fi
 
+echo "Checking to make sure $ADMIN_USER is present..."
+if [[ $(dscl . list /Users) =~ "$ADMIN_USER" ]]; then
+	echo "$ADMIN_USER is present."
+else
+	echo "$ADMIN_USER not found. $CURRENT_USER was not enabled Filevault"
+	exit 1
+fi
+
 # Display a branded prompt explaining the password prompt.
 echo "Alerting user $CURRENT_USER about incoming password prompt..."
 /bin/launchctl "$L_METHOD" "$L_ID" "$jamfHelper" -windowType "utility" -icon "$LOGO" -title "$PROMPT_TITLE" -description "$PROMPT_MESSAGE" -button1 "Next" -defaultButton 1 -startlaunchd &>/dev/null
@@ -232,13 +247,6 @@ until /usr/bin/dscl /Search -authonly "$CURRENT_USER" "$USER_PASS" &>/dev/null; 
 done
 echo "Successfully prompted for Mac password."
 
-echo "Checking to make sure $ADMIN_USER is present..."
-if [[ $(dscl . list /Users) =~ "$ADMIN_USER" ]]; then
-	echo "$ADMIN_USER is present."
-else
-	echo "$ADMIN_USER not found."
-fi
-
 # if macOS 10.13 or later enable SecureToken first
 if [[ "$OS_MINOR" -ge 13 ]]; then
 	echo "System is running macOS $OS_MAJOR.$OS_MINOR."
@@ -253,13 +261,11 @@ if [[ "$OS_MINOR" -ge 13 ]]; then
 			echo "$CURRENT_USER has been granted a SecureToken..."
 		fi
 	fi
+	#Checking to see if we need to add the User to Filevault
+	FV_STATUS="$(/usr/bin/fdesetup status)"
+	if grep -q "FileVault is On" <<< "$FV_STATUS"; then
+		
 		echo "Making $CURRENT_USER FileVault Enabled..."
-		# Translate XML reserved characters to XML friendly representations.
-		USER_PASS=${USER_PASS//&/&amp;}
-		USER_PASS=${USER_PASS//</&lt;}
-		USER_PASS=${USER_PASS//>/&gt;}
-		USER_PASS=${USER_PASS//\"/&quot;}
-		USER_PASS=${USER_PASS//\'/&apos;}
 		# FileVault enable admin account
 		createPlist
 		addUser
@@ -270,19 +276,17 @@ if [[ "$OS_MINOR" -ge 13 ]]; then
 			if [[ "$FILESYSTEM_TYPE" == "apfs" ]]; then
 				echo "Updating APFS Preboot..."
 				updatePreboot
-			fi
+				fi
 		else
 			echo "Error making $CURRENT_USER FileVault Enabled."
 		fi
+	else
+		echo "User was not added to Filevault because: $FV_STATUS"
+	fi
+
 elif [[ "$OS_MINOR" -le 12 ]]; then
 	echo "System is running macOS $OS_MAJOR.$OS_MINOR."
 	echo "Making $CURRENT_USER FileVault Enabled..."
-	# Translate XML reserved characters to XML friendly representations.
-	USER_PASS=${USER_PASS//&/&amp;}
-	USER_PASS=${USER_PASS//</&lt;}
-	USER_PASS=${USER_PASS//>/&gt;}
-	USER_PASS=${USER_PASS//\"/&quot;}
-	USER_PASS=${USER_PASS//\'/&apos;}
 	# FileVault enable admin account
 	createPlist
 	addUser
