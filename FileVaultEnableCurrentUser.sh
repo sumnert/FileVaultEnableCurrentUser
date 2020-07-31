@@ -68,10 +68,13 @@ FORGOT_PW_MESSAGE="Please contact the help desk for help with your Mac password.
 FAIL_MESSAGE="Sorry, an error occurred while updating your Encryption settings. Please contact the help desk for assistance."
 
 # Specify the admin or managmenet account that you want FileVault enabled.
+#************************************************************************************
+# BEWARE: DURING EXECUTION OF SCRIPT IT IS POSSIBLE FOR ATTACKERS TO DECRPYT AND GET THE ADMIN PASSWORD
 ADMIN_USER_ENCRYPTED="$4"
 ADMIN_PASS_ENCRYPTED="$5"
 SALT="$6"
 PASSPHRASE="$7"
+#************************************************************************************
 
 ###############################################################################
 ######################### DO NOT EDIT BELOW THIS LINE #########################
