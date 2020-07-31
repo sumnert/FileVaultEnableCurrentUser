@@ -161,12 +161,6 @@ if [[ $REMOTE_USERS -gt 0 ]]; then
 	BAILOUT=true
 fi
 
-# Make sure the custom logo file is present.
-if [[ ! -f "$LOGO" ]]; then
-	REASON="Custom logo not present: $LOGO"
-	BAILOUT=true
-fi
-
 # Convert POSIX path of logo icon to Mac path for AppleScript
 LOGO_POSIX="$(/usr/bin/osascript -e 'tell application "System Events" to return POSIX file "'"$LOGO"'" as text')"
 
